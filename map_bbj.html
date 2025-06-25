@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport"
+        content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Pilih Koordinat</title>
+
+  <!-- Leaflet CSS & JS (HTTPS) -->
+  <link  rel="stylesheet"
+         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    html,body,#map {height:100%;margin:0;padding:0;}
+  </style>
+</head>
+
+<body>
+  <div id="map"></div>
+
+  <script>
+    /* ================== SETUP PETA ================== */
+    // Koordinat awal (Tugu Jogja) – silakan ubah
+    const defaultLat = -7.782794123757193;
+    const defaultLng = 110.36709914609082;
+
+    const map = L.map('map', {
+      center: [defaultLat, defaultLng],
+      zoom: 16,
+      attributionControl: false,
+      zoomControl: false
+    });
+
+    L.tileLayer(
+      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      { maxZoom: 19 }
+    ).addTo(map);
+
+    let marker = L.marker([defaultLat, defaultLng])
+                  .addTo(map)
+                  .bindPopup('Pilih lokasi')
+                  .openPopup();
+
+    /* ============= KIRIM KOORDINAT KE REACT NATIVE ============= */
+    function postCoords(lat, lng) {
+      if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+        window.ReactNativeWebView.postMessage(
+          JSON.stringify({ lat, lng })
+        );
+      } else {
+        // Fallback – berguna jika diuji di browser biasa
+        console.log('Koordinat:', lat, lng);
+      }
+    }
+
+    /* Klik pada peta */
+    map.on('click', (e) => {
+      const { lat, lng } = e.latlng;
+
+      marker.setLatLng([lat, lng])
+            .bindPopup(`Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`)
+            .openPopup();
+
+      postCoords(lat, lng);
+    });
+
+    /* ============= TERIMA PESAN DARI REACT NATIVE ============= *
+       Mis. di React-Native:
+       webViewRef.current?.postMessage(JSON.stringify({
+         type:'SET_LOCATION', payload:{lat:-7.8,lng:110.36}
+       }));
+    */
+    window.addEventListener('message', (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'SET_LOCATION' && data.payload) {
+          const { lat, lng } = data.payload;
+          map.setView([lat, lng], 17);
+          marker.setLatLng([lat, lng])
+                .bindPopup(`Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`)
+                .openPopup();
+        }
+      } catch (err) {
+        console.warn('Pesan tidak dikenal:', err);
+      }
+    });
+  </script>
+</body>
+</html>
