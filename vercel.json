@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/map-set", "destination": "/map-set.html" }
+  ]
+}
